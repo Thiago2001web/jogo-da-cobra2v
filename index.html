@@ -2,213 +2,370 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Snake-Man 3D Arcade - Edição Sofisticada</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Snake-Man 3D Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;700;900&display=swap');
+:root {
+  --neon-cyan: #00f3ff;
+  --neon-gold: #ffb800;
+  --neon-red: #ff3366;
+  --neon-green: #00ff88;
+  --neon-pink: #ff007f;
+  --bg-dark: #070913;
+}
 
-  .font-arcade {
-    font-family: 'Press Start 2P', monospace;
-  }
-  .font-sans {
-    font-family: 'Outfit', sans-serif;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 
-  body {
-    background: #05060f;
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-    overflow: hidden;
-  }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-dark);
+  font-family: 'Rajdhani', sans-serif;
+  color: #fff;
+  touch-action: none;
+}
 
-  #canvas3d {
-    display: block;
-    width: 100vw;
-    height: 100vh;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
-  }
+#canvas-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
 
-  .arcade-glow {
-    text-shadow: 0 0 12px rgba(168, 85, 247, 0.75), 0 0 24px rgba(6, 182, 212, 0.5);
-  }
+/* HUD Superior */
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+  padding: env(safe-area-inset-top, 8px) 12px 0 12px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-  .hunter-glow {
-    animation: hunterGlowAnim 0.7s infinite alternate;
-  }
-  @keyframes hunterGlowAnim {
-    from {
-      box-shadow: 0 0 15px rgba(234, 179, 8, 0.5), inset 0 0 10px rgba(234, 179, 8, 0.3);
-      border-color: #facc15;
-    }
-    to {
-      box-shadow: 0 0 35px rgba(250, 204, 21, 0.9), inset 0 0 18px rgba(234, 179, 8, 0.6);
-      border-color: #ffffff;
-    }
-  }
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(12, 16, 32, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  border-radius: 12px;
+  padding: 6px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
 
-  .floating-anim {
-    animation: floatAnim 1.6s ease-in-out infinite alternate;
-  }
-  @keyframes floatAnim {
-    from { transform: translateY(-4px); }
-    to { transform: translateY(4px); }
-  }
+.hud-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2px;
+}
+
+.hud-value {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.lives-container {
+  display: flex;
+  gap: 3px;
+  font-size: 16px;
+}
+
+.hud-status-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.status-card {
+  background: rgba(12, 16, 32, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 11px;
+  transition: all 0.3s;
+}
+
+.status-card.hunter-active {
+  border-color: var(--neon-gold);
+  background: rgba(255, 184, 0, 0.2);
+  box-shadow: 0 0 15px rgba(255, 184, 0, 0.4);
+}
+
+.status-card.magnet-active {
+  border-color: var(--neon-cyan);
+  background: rgba(0, 243, 255, 0.2);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+}
+
+/* Banner de Notificação de Fase */
+#level-banner {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 15;
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.95), rgba(255, 0, 127, 0.95));
+  padding: 16px 28px;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 0 35px rgba(0, 243, 255, 0.8);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#level-banner.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+#level-banner h2 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 18px;
+  color: #fff;
+  margin-bottom: 6px;
+  text-shadow: 2px 2px 0px #000;
+}
+
+#level-banner p {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+/* Controles Touch Ergonômicos */
+#touch-controls {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 10px) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(2, 56px);
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.t-btn {
+  width: 56px;
+  height: 56px;
+  background: rgba(12, 18, 36, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(0, 243, 255, 0.35);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon-cyan);
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.08s, background 0.08s;
+  pointer-events: auto;
+}
+
+.t-btn:active {
+  transform: scale(0.92);
+  background: rgba(0, 243, 255, 0.25);
+  border-color: var(--neon-cyan);
+}
+
+#btn-up { grid-column: 2; grid-row: 1; }
+#btn-left { grid-column: 1; grid-row: 2; }
+#btn-down { grid-column: 2; grid-row: 2; }
+#btn-right { grid-column: 3; grid-row: 2; }
+
+/* Menus de Início e Fim */
+.modal-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: rgba(7, 9, 19, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.modal-screen.hidden {
+  display: none;
+}
+
+.modal-box {
+  max-width: 380px;
+  width: 90%;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid rgba(0, 243, 255, 0.4);
+  box-shadow: 0 0 35px rgba(0, 243, 255, 0.25);
+  border-radius: 20px;
+  padding: 26px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.modal-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+}
+
+.modal-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+}
+
+.action-btn {
+  background: linear-gradient(135deg, var(--neon-green), #059669);
+  color: #032b17;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  padding: 12px 32px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+  transition: transform 0.15s;
+  letter-spacing: 1px;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+}
 </style>
 </head>
+<body>
 
-<body class="w-screen h-screen m-0 p-0 overflow-hidden font-sans text-slate-100">
+<div id="canvas-container"></div>
 
-  <!-- Canvas Three.js -->
-  <canvas id="canvas3d"></canvas>
-
-  <!-- HUD Superior Flutuante Sofisticado -->
-  <header class="absolute top-2 sm:top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-4xl z-20 pointer-events-none flex flex-col gap-2">
-    <div class="flex items-center justify-between bg-slate-950/85 backdrop-blur-xl border border-violet-500/30 rounded-2xl px-5 py-2.5 shadow-2xl pointer-events-auto">
-      
-      <!-- Vidas (6 Corações) -->
-      <div class="flex flex-col">
-        <span class="text-[9px] uppercase font-black text-violet-400 tracking-wider">Vidas</span>
-        <div id="livesContainer" class="flex gap-1 text-sm sm:text-base mt-0.5"></div>
-      </div>
-
-      <!-- Fase / Nível -->
-      <div class="text-center">
-        <span class="text-[9px] uppercase font-black text-amber-400 tracking-wider">Fase</span>
-        <div class="font-arcade text-sm sm:text-base text-yellow-300 arcade-glow" id="levelDisplay">01</div>
-      </div>
-
-      <!-- Pontuação & Meta -->
-      <div class="text-right">
-        <span class="text-[9px] uppercase font-black text-cyan-400 tracking-wider">Pontos / Meta</span>
-        <div class="font-arcade text-xs sm:text-sm text-cyan-300">
-          <span id="scoreDisplay">0</span><span class="text-slate-600">/</span><span id="targetScoreDisplay" class="text-slate-400">20</span>
-        </div>
-      </div>
+<!-- HUD Superior -->
+<div id="ui-layer">
+  <div class="hud-top">
+    <div class="hud-group">
+      <span class="hud-label">VIDAS</span>
+      <div class="lives-container" id="lives-el">❤️❤️❤️❤️❤️❤️</div>
     </div>
-
-    <!-- Barra de Power-ups (Modo Caçador & Ímã) -->
-    <div class="grid grid-cols-2 gap-2 pointer-events-auto">
-      <!-- Caçador / Pac-Man Mode com Banner de Destaque Evidente -->
-      <div id="pacmanStatusCard" class="bg-slate-950/80 backdrop-blur-md border border-amber-500/30 rounded-xl px-3 py-2 flex flex-col justify-center transition-all duration-300">
-        <div class="flex justify-between items-center text-[10px] font-black text-amber-300 mb-1">
-          <span id="hunterTitle" class="flex items-center gap-1.5 tracking-wider">
-            <span class="text-base" id="hunterIcon">⚡</span>
-            <span id="hunterLabelText">MODO CAÇADOR</span>
-          </span>
-          <span id="pacTimerText" class="font-arcade text-xs text-amber-300">OFF</span>
-        </div>
-        <div class="w-full bg-slate-900/90 h-2 rounded-full overflow-hidden border border-amber-500/20">
-          <div id="pacBar" class="bg-gradient-to-r from-amber-500 via-yellow-300 to-white h-full w-0 transition-all duration-150"></div>
-        </div>
-      </div>
-
-      <!-- Ímã Magnético -->
-      <div class="bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 rounded-xl px-3 py-2 flex flex-col justify-center">
-        <div class="flex justify-between items-center text-[10px] font-black text-cyan-300 mb-1">
-          <span class="flex items-center gap-1.5 tracking-wider">
-            <span class="text-base">🧲</span>
-            <span>SUPER ÍMÃ</span>
-          </span>
-          <span id="magnetTimerText" class="font-arcade text-xs text-cyan-300">OFF</span>
-        </div>
-        <div class="w-full bg-slate-900/90 h-2 rounded-full overflow-hidden border border-cyan-500/20">
-          <div id="magnetBar" class="bg-gradient-to-r from-cyan-500 to-indigo-400 h-full w-0 transition-all duration-150"></div>
-        </div>
-      </div>
+    <div class="hud-group" style="text-align: center;">
+      <span class="hud-label">FASE</span>
+      <span class="hud-value" style="color: var(--neon-gold);" id="level-el">01</span>
     </div>
-  </header>
+    <div class="hud-group" style="text-align: right;">
+      <span class="hud-label">PONTOS</span>
+      <span class="hud-value" style="color: var(--neon-cyan);"><span id="score-el">0</span>/<span id="goal-el">15</span></span>
+    </div>
+  </div>
 
-  <!-- Overlay: Iniciar Jogo -->
-  <div id="startOverlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
-    <div class="text-5xl mb-3 floating-anim">🐍👾</div>
-    <h1 class="font-arcade text-xl sm:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-yellow-300 to-rose-400 mb-3 tracking-widest arcade-glow">
-      SNAKE-MAN 3D
-    </h1>
-    <p class="text-xs sm:text-sm text-slate-300 max-w-md mb-6 leading-relaxed">
-      A arena 3D foi ampliada! Colete <b class="text-yellow-300">Pílulas Amarelas</b>, use o <b class="text-cyan-400">Super Ímã</b> para puxar tudo até você e ative a <b class="text-amber-400">Super Pílula ⚡</b> para caçar e devorar os fantasminhas!
+  <div class="hud-status-bar">
+    <div class="status-card" id="hunter-card">
+      <span>⚡ CAÇADOR</span>
+      <span id="hunter-val">OFF</span>
+    </div>
+    <div class="status-card" id="magnet-card">
+      <span>🧲 SUPER ÍMÃ</span>
+      <span id="magnet-val">OFF</span>
+    </div>
+  </div>
+</div>
+
+<!-- Banner de Mudança de Fase -->
+<div id="level-banner">
+  <h2 id="banner-title">FASE COMPLETA!</h2>
+  <p id="banner-sub">+100 PONTOS BÔNUS</p>
+</div>
+
+<!-- Botões Direcionais na Tela -->
+<div id="touch-controls">
+  <div class="t-btn" id="btn-up">▲</div>
+  <div class="t-btn" id="btn-left">◀</div>
+  <div class="t-btn" id="btn-down">▼</div>
+  <div class="t-btn" id="btn-right">▶</div>
+</div>
+
+<!-- Tela Inicial -->
+<div class="modal-screen" id="menu-modal">
+  <div class="modal-box">
+    <div class="modal-title">SNAKE-MAN 3D</div>
+    <p class="modal-desc">
+      • Use os botões na tela ou <b>deslize o dedo</b> para controlar a cobrinha.<br>
+      • Atravesse as paredes para fugir!<br>
+      • Pegue a <b>Super Pílula ⚡</b> para devorar os fantasminhas.<br>
+      • O <b>Ímã 🧲</b> puxa todas as comidas para você!
     </p>
-
-    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 text-left text-xs text-slate-300 mb-6 space-y-2 max-w-sm">
-      <div class="flex items-center gap-2.5"><span class="text-lg">❤️</span> <span><b>6 Vidas:</b> Continue jogando sem perder seu progresso!</span></div>
-      <div class="flex items-center gap-2.5"><span class="text-lg">🌀</span> <span><b>Paredes com Portais:</b> Atravesse qualquer lado da arena.</span></div>
-      <div class="flex items-center gap-2.5"><span class="text-lg">👻</span> <span>Fantasmas nascem longe! Quando ficarem azuis, coma-os (+50 pts).</span></div>
-      <div class="flex items-center gap-2.5"><span class="text-lg">🧲</span> <span>Ímã atrai as comidas do tabuleiro diretamente à cabeça da cobra.</span></div>
-    </div>
-
-    <button onclick="startGame()" class="px-8 py-4 bg-gradient-to-r from-emerald-400 to-cyan-500 hover:from-emerald-300 hover:to-cyan-400 text-slate-950 font-arcade text-xs sm:text-sm tracking-wider rounded-2xl shadow-lg shadow-cyan-500/30 transform active:scale-95 transition-all cursor-pointer font-black">
-      INICIAR JOGO 3D ➔
-    </button>
+    <button class="action-btn" onclick="startGame()">JOGAR AGORA</button>
   </div>
+</div>
 
-  <!-- Overlay: Fase Concluída -->
-  <div id="levelClearOverlay" class="absolute inset-0 bg-indigo-950/90 backdrop-blur-md hidden flex-col items-center justify-center p-6 text-center z-30">
-    <div class="font-arcade text-yellow-300 text-xl sm:text-3xl mb-3 floating-anim arcade-glow">
-      ★ FASE COMPLETA! ★
-    </div>
-    <p class="text-slate-200 text-sm mb-4">Novo setor desbloqueado com maior velocidade e novos desafios!</p>
-    <div class="font-arcade text-xs text-cyan-300 mb-6 bg-slate-900/90 px-6 py-3 rounded-xl border border-cyan-500/40">
-      Bônus de Fase: +100 Pontos
-    </div>
-    <button onclick="nextLevel()" class="px-8 py-3.5 bg-gradient-to-r from-amber-400 to-emerald-400 text-slate-950 font-arcade text-xs tracking-wider rounded-2xl shadow-xl active:scale-95 transition-all font-black">
-      PRÓXIMA FASE ➔
-    </button>
+<!-- Tela de Game Over -->
+<div class="modal-screen hidden" id="game-over-modal">
+  <div class="modal-box">
+    <div class="modal-title" style="color: var(--neon-red);">GAME OVER</div>
+    <p class="modal-desc">
+      Pontuação Final: <b id="final-score" style="color: var(--neon-gold); font-size: 20px;">0</b><br>
+      Fase Alcançada: <b id="final-level" style="color: var(--neon-cyan);">01</b>
+    </p>
+    <button class="action-btn" onclick="restartGame()">TENTAR DE NOVO</button>
   </div>
-
-  <!-- Overlay: Game Over -->
-  <div id="gameOverOverlay" class="absolute inset-0 bg-rose-950/90 backdrop-blur-md hidden flex-col items-center justify-center p-6 text-center z-30">
-    <div class="text-5xl mb-3">💀</div>
-    <h2 class="font-arcade text-2xl sm:text-3xl text-rose-400 mb-2 arcade-glow">GAME OVER</h2>
-    <p class="text-xs text-slate-300 mb-5">Suas 6 vidas acabaram!</p>
-    <div class="bg-slate-900/90 border border-rose-900/50 rounded-2xl p-4 mb-6 w-full max-w-xs flex justify-around">
-      <div>
-        <div class="text-[10px] text-slate-400 uppercase font-black">Pontuação</div>
-        <div class="font-arcade text-base text-yellow-400 mt-1" id="finalScore">0</div>
-      </div>
-      <div class="w-px bg-slate-800"></div>
-      <div>
-        <div class="text-[10px] text-slate-400 uppercase font-black">Fase Final</div>
-        <div class="font-arcade text-base text-cyan-400 mt-1" id="finalLevel">1</div>
-      </div>
-    </div>
-    <button onclick="restartGame()" class="px-8 py-3.5 bg-rose-500 hover:bg-rose-400 text-white font-arcade text-xs tracking-wider rounded-2xl shadow-lg active:scale-95 transition-all font-black">
-      JOGAR NOVAMENTE ↺
-    </button>
-  </div>
-
-  <!-- Controles Virtuais Touch (Mobile) -->
-  <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-xs flex flex-col items-center gap-1.5 z-20 pointer-events-auto sm:hidden">
-    <button onclick="handleDir(0, -1)" class="w-16 h-12 bg-slate-900/80 active:bg-cyan-500/50 backdrop-blur-md rounded-2xl text-xl flex items-center justify-center border border-cyan-500/40 text-cyan-300 shadow-lg">▲</button>
-    <div class="flex gap-4">
-      <button onclick="handleDir(-1, 0)" class="w-16 h-12 bg-slate-900/80 active:bg-cyan-500/50 backdrop-blur-md rounded-2xl text-xl flex items-center justify-center border border-cyan-500/40 text-cyan-300 shadow-lg">◀</button>
-      <button onclick="handleDir(0, 1)" class="w-16 h-12 bg-slate-900/80 active:bg-cyan-500/50 backdrop-blur-md rounded-2xl text-xl flex items-center justify-center border border-cyan-500/40 text-cyan-300 shadow-lg">▼</button>
-      <button onclick="handleDir(1, 0)" class="w-16 h-12 bg-slate-900/80 active:bg-cyan-500/50 backdrop-blur-md rounded-2xl text-xl flex items-center justify-center border border-cyan-500/40 text-cyan-300 shadow-lg">▶</button>
-    </div>
-  </div>
+</div>
 
 <script>
-/**
- * SNAKE-MAN ARCADE 3D - EDIÇÃO SOFISTICADA
- */
-
-// --- Sistema de Áudio Sintetizado (Arcade Sound FX) ---
-const Sound = {
+// --- Áudio Sintetizado Web Audio API ---
+const AudioEngine = {
   ctx: null,
   init() {
     if (!this.ctx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) this.ctx = new AC();
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContext();
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
+    if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   },
-  play(freq, type = 'sine', duration = 0.08, vol = 0.12) {
+  playTone(freq, type, duration, vol = 0.15) {
     if (!this.ctx) return;
     try {
       const osc = this.ctx.createOscillator();
@@ -216,1123 +373,685 @@ const Sound = {
       osc.type = type;
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
       gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + duration);
     } catch(e) {}
   },
-  eatDot() {
-    this.play(650, 'triangle', 0.05, 0.08);
-  },
-  eatPellet() {
-    this.play(440, 'sine', 0.1, 0.18);
-    setTimeout(() => this.play(720, 'square', 0.14, 0.2), 70);
-    setTimeout(() => this.play(1100, 'triangle', 0.22, 0.22), 150);
+  eat() { this.playTone(580, 'sine', 0.08, 0.12); },
+  power() {
+    if (!this.ctx) return;
+    [400, 550, 700, 880].forEach((f, i) => {
+      setTimeout(() => this.playTone(f, 'triangle', 0.12, 0.15), i * 60);
+    });
   },
   eatGhost() {
-    this.play(260, 'sawtooth', 0.1, 0.2);
-    setTimeout(() => this.play(520, 'square', 0.12, 0.22), 60);
-    setTimeout(() => this.play(1040, 'sine', 0.2, 0.25), 120);
+    if (!this.ctx) return;
+    [800, 1100, 1400].forEach((f, i) => {
+      setTimeout(() => this.playTone(f, 'sine', 0.1, 0.18), i * 50);
+    });
   },
-  hurt() {
-    this.play(180, 'sawtooth', 0.28, 0.25);
-    setTimeout(() => this.play(110, 'triangle', 0.35, 0.25), 100);
-  },
-  magnet() {
-    this.play(400, 'sine', 0.08, 0.12);
-    setTimeout(() => this.play(680, 'sine', 0.1, 0.15), 80);
-    setTimeout(() => this.play(980, 'sine', 0.18, 0.16), 160);
-  },
+  hit() { this.playTone(130, 'sawtooth', 0.28, 0.22); },
   levelUp() {
-    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-      setTimeout(() => this.play(freq, 'square', 0.18, 0.15), idx * 90);
+    if (!this.ctx) return;
+    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+      setTimeout(() => this.playTone(f, 'square', 0.15, 0.1), i * 100);
     });
   }
 };
 
-// --- Configuração da Arena 3D ---
-const ARENA_SIZE = 30; // Grid expandido de 30x30 células
-const TILE_SIZE = 2.0; // Tamanho de cada célula 3D
-const HALF_ARENA = (ARENA_SIZE * TILE_SIZE) / 2;
+// --- Configurações do Jogo ---
+const GRID_SIZE = 26; // Tamanho ideal para visualização completa em telas verticais
+const CELL_SIZE = 1.0;
+const OFFSET = (GRID_SIZE * CELL_SIZE) / 2;
 
-// --- Variáveis do Estado do Jogo ---
-let snake = [];
-let dirX = 1;
-let dirZ = 0;
-let nextDirX = 1;
-let nextDirZ = 0;
+let scene, camera, renderer;
+let snakeSegments = [];
+let foods = [];
+let powerPellets = [];
+let magnets = [];
+let ghosts = [];
 
+let snakeDir = { x: 1, z: 0 };
+let nextDir = { x: 1, z: 0 };
 let lives = 6;
 let score = 0;
 let level = 1;
-let targetScore = 20;
-let isRunning = false;
-let isClearing = false;
-let moveInterval = 135;
-let lastStepTime = 0;
+let levelGoal = 15;
+let running = false;
+let stepTimer = 0;
+let stepInterval = 0.14; // Velocidade do tick da cobrinha
 
-let pacmanMode = false;
-let pacmanTimer = 0;
-let magnetMode = false;
-let magnetTimer = 0;
+let hunterTime = 0;
+let magnetTime = 0;
 
-// Três.js Globais
-let scene, camera, renderer;
-let snakeMeshes = [];
-let foods = [];
-let powerPellet = null;
-let magnetItem = null;
-let ghosts = [];
-let particleGroup = [];
-let starfieldMesh = null;
+// Elementos HUD
+const livesEl = document.getElementById('lives-el');
+const levelEl = document.getElementById('level-el');
+const scoreEl = document.getElementById('score-el');
+const goalEl = document.getElementById('goal-el');
+const hunterCard = document.getElementById('hunter-card');
+const hunterVal = document.getElementById('hunter-val');
+const magnetCard = document.getElementById('magnet-card');
+const magnetVal = document.getElementById('magnet-val');
+const levelBanner = document.getElementById('level-banner');
 
-// Definições visuais dos Fantasmas
-const GHOST_DATA = [
-  { name: 'Blinky', color: 0xf43f5e, startX: ARENA_SIZE - 4, startZ: 3 },
-  { name: 'Pinky',  color: 0xec4899, startX: ARENA_SIZE - 4, startZ: ARENA_SIZE - 4 },
-  { name: 'Inky',   color: 0x06b6d4, startX: 3,              startZ: 3 },
-  { name: 'Clyde',  color: 0xf59e0b, startX: Math.floor(ARENA_SIZE/2), startZ: 3 }
-];
+// Materiais reutilizáveis
+const matSnakeHead = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3, metalness: 0.2 });
+const matSnakeBody = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.4 });
+const matFood = new THREE.MeshStandardMaterial({ color: 0xff3366, emissive: 0xff1144, emissiveIntensity: 0.6 });
+const matPower = new THREE.MeshStandardMaterial({ color: 0xffb800, emissive: 0xffb800, emissiveIntensity: 0.8 });
+const matMagnet = new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x00f3ff, emissiveIntensity: 0.8 });
 
-// --- Criação da Cena Three.js ---
+// Setup da Cena 3D Three.js
 function initThree() {
-  const canvas = document.getElementById("canvas3d");
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  const container = document.getElementById('canvas-container');
+  
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x070913);
+  scene.fog = new THREE.FogExp2(0x070913, 0.022);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+  adjustCameraForDevice();
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = false; // Desabilitado para máxima performance em celulares
+  container.appendChild(renderer.domElement);
 
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x05060f);
-  scene.fog = new THREE.FogExp2(0x05060f, 0.012);
-
-  // Câmera Estável e Ampla (Visão Isométrica Fixa, sem balanços bruscos)
-  camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 58, 48);
-  camera.lookAt(0, -1, 0);
-
-  // Iluminação Sofisticada Cyber-Lounge
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  // Iluminação
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
   scene.add(ambientLight);
 
-  const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
-  mainLight.position.set(25, 65, 30);
-  mainLight.castShadow = true;
-  mainLight.shadow.mapSize.width = 2048;
-  mainLight.shadow.mapSize.height = 2048;
-  scene.add(mainLight);
+  const dirLight = new THREE.DirectionalLight(0x00f3ff, 0.9);
+  dirLight.position.set(10, 30, 15);
+  scene.add(dirLight);
 
-  // Luzes pontuais neon nas extremidades (Violeta & Ciano)
-  const neonViolet = new THREE.PointLight(0xa855f7, 2.5, 90);
-  neonViolet.position.set(-HALF_ARENA, 8, -HALF_ARENA);
-  scene.add(neonViolet);
-
-  const neonCyan = new THREE.PointLight(0x06b6d4, 2.5, 90);
-  neonCyan.position.set(HALF_ARENA, 8, HALF_ARENA);
-  scene.add(neonCyan);
-
-  const centerAccent = new THREE.PointLight(0x3b82f6, 1.2, 70);
-  centerAccent.position.set(0, 15, 0);
-  scene.add(centerAccent);
-
-  buildStarfieldBackground();
-  buildArenaEnvironment();
+  createArena();
 
   window.addEventListener('resize', onWindowResize);
 }
 
+// Enquadramento Perfeito para Celular (Retrato) e Tablet/PC
+function adjustCameraForDevice() {
+  const aspect = window.innerWidth / window.innerHeight;
+  
+  if (aspect < 1) {
+    // Modo Retrato (Celular em pé)
+    // Recua a câmera proporcionalmente para nunca cortar as laterais do tabuleiro
+    const distance = (GRID_SIZE * 1.05) / aspect;
+    camera.position.set(0, distance * 0.95, distance * 0.62);
+    camera.lookAt(0, -2, 0);
+  } else {
+    // Modo Paisagem (Tablet / Computador)
+    const distance = GRID_SIZE * 1.05;
+    camera.position.set(0, distance * 0.95, distance * 0.68);
+    camera.lookAt(0, -1, 0);
+  }
+}
+
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
+  adjustCameraForDevice();
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function gridToWorld(gx, gz) {
-  return {
-    x: (gx * TILE_SIZE) - HALF_ARENA + (TILE_SIZE / 2),
-    z: (gz * TILE_SIZE) - HALF_ARENA + (TILE_SIZE / 2)
-  };
-}
-
-// Fundo Estelar / Partículas Cósmicas Sutis
-function buildStarfieldBackground() {
-  const starsCount = 450;
-  const starGeo = new THREE.BufferGeometry();
-  const starCoords = [];
-
-  for (let i = 0; i < starsCount; i++) {
-    const x = (Math.random() - 0.5) * 220;
-    const y = 10 + Math.random() * 90;
-    const z = (Math.random() - 0.5) * 220;
-    starCoords.push(x, y, z);
-  }
-
-  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
-  const starMat = new THREE.PointsMaterial({
-    color: 0x94a3b8,
-    size: 0.6,
-    transparent: true,
-    opacity: 0.75
+// Criação do Tabuleiro e Portais
+function createArena() {
+  const boardGeo = new THREE.PlaneGeometry(GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
+  const boardMat = new THREE.MeshStandardMaterial({
+    color: 0x0c1020,
+    roughness: 0.4,
+    metalness: 0.6
   });
+  const board = new THREE.Mesh(boardGeo, boardMat);
+  board.rotation.x = -Math.PI / 2;
+  board.position.y = -0.1;
+  scene.add(board);
 
-  starfieldMesh = new THREE.Points(starGeo, starMat);
-  scene.add(starfieldMesh);
-}
-
-// Constrói o Piso Obsidiana e Bordas com Pilares Neon
-function buildArenaEnvironment() {
-  // Piso Obsidiana Elegante com Reflexos
-  const floorGeo = new THREE.PlaneGeometry(ARENA_SIZE * TILE_SIZE, ARENA_SIZE * TILE_SIZE);
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x0a0c16,
-    roughness: 0.25,
-    metalness: 0.85
-  });
-  const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-  floorMesh.rotation.x = -Math.PI / 2;
-  floorMesh.receiveShadow = true;
-  scene.add(floorMesh);
-
-  // Grid Synthwave Elegante (Tons Roxos e Ciano)
-  const gridHelper = new THREE.GridHelper(ARENA_SIZE * TILE_SIZE, ARENA_SIZE, 0xa855f7, 0x1e1b4b);
+  // Grid Neon Synthwave
+  const gridHelper = new THREE.GridHelper(GRID_SIZE * CELL_SIZE, GRID_SIZE, 0x00f3ff, 0x1f294a);
   gridHelper.position.y = 0.02;
   scene.add(gridHelper);
 
-  // Bordas e Portais Neon Luminosos
-  const borderThickness = 0.35;
-  const borderHeight = 0.7;
-  const borderGeoH = new THREE.BoxGeometry(ARENA_SIZE * TILE_SIZE, borderHeight, borderThickness);
-  const borderGeoV = new THREE.BoxGeometry(borderThickness, borderHeight, ARENA_SIZE * TILE_SIZE);
+  // Bordas com Neon Brilhante (Sinalizando que é portal/atravessável)
+  const borderMat = new THREE.MeshBasicMaterial({ color: 0x9333ea });
+  const half = (GRID_SIZE * CELL_SIZE) / 2;
+  const thickness = 0.2;
 
-  const borderMat = new THREE.MeshStandardMaterial({
-    color: 0x8b5cf6,
-    emissive: 0x6d28d9,
-    emissiveIntensity: 0.7,
-    roughness: 0.2,
-    metalness: 0.5
-  });
+  const bTop = new THREE.Mesh(new THREE.BoxGeometry(GRID_SIZE * CELL_SIZE, thickness, thickness), borderMat);
+  bTop.position.set(0, 0.1, -half);
+  const bBottom = new THREE.Mesh(new THREE.BoxGeometry(GRID_SIZE * CELL_SIZE, thickness, thickness), borderMat);
+  bBottom.position.set(0, 0.1, half);
+  const bLeft = new THREE.Mesh(new THREE.BoxGeometry(thickness, thickness, GRID_SIZE * CELL_SIZE), borderMat);
+  bLeft.position.set(-half, 0.1, 0);
+  const bRight = new THREE.Mesh(new THREE.BoxGeometry(thickness, thickness, GRID_SIZE * CELL_SIZE), borderMat);
+  bRight.position.set(half, 0.1, 0);
 
-  const bNorth = new THREE.Mesh(borderGeoH, borderMat);
-  bNorth.position.set(0, borderHeight / 2, -HALF_ARENA);
-  scene.add(bNorth);
-
-  const bSouth = new THREE.Mesh(borderGeoH, borderMat);
-  bSouth.position.set(0, borderHeight / 2, HALF_ARENA);
-  scene.add(bSouth);
-
-  const bWest = new THREE.Mesh(borderGeoV, borderMat);
-  bWest.position.set(-HALF_ARENA, borderHeight / 2, 0);
-  scene.add(bWest);
-
-  const bEast = new THREE.Mesh(borderGeoV, borderMat);
-  bEast.position.set(HALF_ARENA, borderHeight / 2, 0);
-  scene.add(bEast);
-
-  // Pilares de Luz nos 4 Cantos
-  const cornerPositions = [
-    [-HALF_ARENA, -HALF_ARENA],
-    [HALF_ARENA, -HALF_ARENA],
-    [-HALF_ARENA, HALF_ARENA],
-    [HALF_ARENA, HALF_ARENA]
-  ];
-
-  const pillarGeo = new THREE.CylinderGeometry(0.5, 0.5, 4.0, 16);
-  const pillarMat = new THREE.MeshStandardMaterial({
-    color: 0x06b6d4,
-    emissive: 0x0891b2,
-    emissiveIntensity: 0.9,
-    roughness: 0.2
-  });
-
-  cornerPositions.forEach(([cx, cz]) => {
-    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-    pillar.position.set(cx, 2.0, cz);
-    scene.add(pillar);
-  });
+  scene.add(bTop, bBottom, bLeft, bRight);
 }
 
-// Criação da Cobra 3D
-function createSnakeHeadMesh() {
-  const headGroup = new THREE.Group();
-
-  const headGeo = new THREE.SphereGeometry(TILE_SIZE * 0.48, 24, 24);
-  const headMat = new THREE.MeshStandardMaterial({
-    color: 0x10b981,
-    emissive: 0x059669,
-    emissiveIntensity: 0.35,
-    roughness: 0.3,
-    metalness: 0.2
-  });
-  const headMesh = new THREE.Mesh(headGeo, headMat);
-  headMesh.castShadow = true;
-  headMesh.scale.set(1, 0.85, 1.1);
-  headGroup.add(headMesh);
-
-  // Aura luminosa para o Modo Caçador
-  const auraGeo = new THREE.SphereGeometry(TILE_SIZE * 0.58, 20, 20);
-  const auraMat = new THREE.MeshBasicMaterial({
-    color: 0xfacc15,
-    transparent: true,
-    opacity: 0.0,
-    wireframe: true
-  });
-  const aura = new THREE.Mesh(auraGeo, auraMat);
-  headGroup.add(aura);
-
-  // Olhos Expressivos
-  const eyeWhiteGeo = new THREE.SphereGeometry(0.24, 16, 16);
-  const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const eyePupilGeo = new THREE.SphereGeometry(0.12, 12, 12);
-  const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-
-  const eyeLeft = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
-  eyeLeft.position.set(-0.35, 0.35, 0.55);
-  const pupilLeft = new THREE.Mesh(eyePupilGeo, eyePupilMat);
-  pupilLeft.position.set(-0.35, 0.38, 0.72);
-  headGroup.add(eyeLeft);
-  headGroup.add(pupilLeft);
-
-  const eyeRight = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
-  eyeRight.position.set(0.35, 0.35, 0.55);
-  const pupilRight = new THREE.Mesh(eyePupilGeo, eyePupilMat);
-  pupilRight.position.set(0.35, 0.38, 0.72);
-  headGroup.add(eyeRight);
-  headGroup.add(pupilRight);
-
-  headGroup.position.y = TILE_SIZE * 0.45;
-  scene.add(headGroup);
-  return headGroup;
-}
-
-function createSnakeSegmentMesh(index) {
-  const radius = Math.max(0.28, (TILE_SIZE * 0.44) - (index * 0.005));
-  const segGeo = new THREE.SphereGeometry(radius, 20, 20);
-  const segMat = new THREE.MeshStandardMaterial({
-    color: 0x34d399,
-    emissive: 0x059669,
-    emissiveIntensity: 0.25,
-    roughness: 0.4
-  });
-  const segMesh = new THREE.Mesh(segGeo, segMat);
-  segMesh.castShadow = true;
-  segMesh.position.y = radius;
-  scene.add(segMesh);
-  return segMesh;
-}
-
-// Criação do Fantasma 3D
-function createGhostMesh(baseHexColor) {
-  const ghostGroup = new THREE.Group();
-
-  const domeGeo = new THREE.SphereGeometry(TILE_SIZE * 0.45, 20, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-  const ghostMat = new THREE.MeshStandardMaterial({
-    color: baseHexColor,
-    roughness: 0.3,
-    metalness: 0.1
-  });
-  const dome = new THREE.Mesh(domeGeo, ghostMat);
-  dome.position.y = TILE_SIZE * 0.45;
-  ghostGroup.add(dome);
-
-  const bodyGeo = new THREE.CylinderGeometry(TILE_SIZE * 0.45, TILE_SIZE * 0.45, TILE_SIZE * 0.45, 20, 1, true);
-  const body = new THREE.Mesh(bodyGeo, ghostMat);
-  body.position.y = TILE_SIZE * 0.225;
-  ghostGroup.add(body);
-
-  const tentacleGeo = new THREE.ConeGeometry(0.18, 0.3, 12);
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2;
-    const tent = new THREE.Mesh(tentacleGeo, ghostMat);
-    tent.rotation.x = Math.PI;
-    tent.position.set(Math.cos(angle) * 0.35, 0.05, Math.sin(angle) * 0.35);
-    ghostGroup.add(tent);
-  }
-
-  // Olhos
-  const eyeWhiteGeo = new THREE.SphereGeometry(0.22, 14, 14);
-  const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const pupilGeo = new THREE.SphereGeometry(0.1, 10, 10);
-  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x1d4ed8 });
-
-  const leftEye = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
-  leftEye.position.set(-0.3, 0.45, 0.5);
-  const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
-  leftPupil.position.set(-0.3, 0.45, 0.65);
-  ghostGroup.add(leftEye);
-  ghostGroup.add(leftPupil);
-
-  const rightEye = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
-  rightEye.position.set(0.3, 0.45, 0.5);
-  const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
-  rightPupil.position.set(0.3, 0.45, 0.65);
-  ghostGroup.add(rightEye);
-  ghostGroup.add(rightPupil);
-
-  // Luz própria do fantasma
-  const ghostLight = new THREE.PointLight(baseHexColor, 1.2, 6);
-  ghostLight.position.set(0, 0.8, 0);
-  ghostGroup.add(ghostLight);
-
-  ghostGroup.position.y = 0.2;
-  scene.add(ghostGroup);
-
+// Conversão de Coordenadas de Grid para Posição 3D
+function gridToWorld(x, z) {
   return {
-    group: ghostGroup,
-    material: ghostMat,
-    pupilMat,
-    light: ghostLight,
-    baseColor: baseHexColor
+    x: (x * CELL_SIZE) - OFFSET + (CELL_SIZE / 2),
+    z: (z * CELL_SIZE) - OFFSET + (CELL_SIZE / 2)
   };
 }
 
-// Criação de Itens Coletáveis 3D
-function createFoodMesh(x, z) {
-  const pos = gridToWorld(x, z);
-  const geo = new THREE.SphereGeometry(0.32, 16, 16);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xfacc15,
-    emissive: 0xeab308,
-    emissiveIntensity: 0.6,
-    roughness: 0.2
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(pos.x, 0.5, pos.z);
-  scene.add(mesh);
-  return { x, z, mesh, phase: Math.random() * Math.PI };
-}
-
-// Super Pílula com Visual Chamativo e Anéis Orbitais Energéticos
-function createPowerPelletMesh(x, z) {
-  const pos = gridToWorld(x, z);
-  const group = new THREE.Group();
-
-  // Núcleo Radiante
-  const coreGeo = new THREE.SphereGeometry(0.55, 24, 24);
-  const coreMat = new THREE.MeshStandardMaterial({
-    color: 0xfffbeb,
-    emissive: 0xf59e0b,
-    emissiveIntensity: 1.6,
-    roughness: 0.1
-  });
-  const core = new THREE.Mesh(coreGeo, coreMat);
-  group.add(core);
-
-  // Anel Energético Pulsante em Torno
-  const ringGeo = new THREE.TorusGeometry(0.85, 0.08, 12, 32);
-  const ringMat = new THREE.MeshBasicMaterial({
-    color: 0xfbbf24,
-    transparent: true,
-    opacity: 0.85
-  });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI / 3;
-  group.add(ring);
-
-  // Luz Radiante Forte
-  const light = new THREE.PointLight(0xf59e0b, 2.5, 12);
-  group.add(light);
-
-  group.position.set(pos.x, 0.85, pos.z);
-  scene.add(group);
-  return { x, z, group, ring, light, lifespan: 180 };
-}
-
-function createMagnetMesh(x, z) {
-  const pos = gridToWorld(x, z);
-  const group = new THREE.Group();
-
-  const arcGeo = new THREE.TorusGeometry(0.44, 0.14, 12, 24, Math.PI);
-  const redMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
-  const arc = new THREE.Mesh(arcGeo, redMat);
-  arc.rotation.z = Math.PI;
-  group.add(arc);
-
-  const tipGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.28, 12);
-  const tipMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
+// Criação dos Fantasminhas 3D
+function createGhostMesh(colorHex) {
+  const ghostGroup = new THREE.Group();
   
-  const tip1 = new THREE.Mesh(tipGeo, tipMat);
-  tip1.position.set(-0.44, 0.14, 0);
-  group.add(tip1);
+  // Corpo
+  const bodyGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.45, 16);
+  const ghostMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3 });
+  const body = new THREE.Mesh(bodyGeo, ghostMat);
+  body.position.y = 0.25;
 
-  const tip2 = new THREE.Mesh(tipGeo, tipMat);
-  tip2.position.set(0.44, 0.14, 0);
-  group.add(tip2);
+  // Cúpula da cabeça
+  const domeGeo = new THREE.SphereGeometry(0.42, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  const dome = new THREE.Mesh(domeGeo, ghostMat);
+  dome.position.y = 0.48;
 
-  const light = new THREE.PointLight(0x06b6d4, 1.8, 9);
-  group.add(light);
+  // Olhos
+  const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const eyeBlueMat = new THREE.MeshBasicMaterial({ color: 0x0055ff });
 
-  group.position.set(pos.x, 0.8, pos.z);
-  scene.add(group);
-  return { x, z, group, light, lifespan: 150 };
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeWhiteMat);
+  eyeL.position.set(-0.16, 0.42, 0.35);
+  const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), eyeBlueMat);
+  pupilL.position.set(-0.16, 0.42, 0.44);
+
+  const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeWhiteMat);
+  eyeR.position.set(0.16, 0.42, 0.35);
+  const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), eyeBlueMat);
+  pupilR.position.set(0.16, 0.42, 0.44);
+
+  ghostGroup.add(body, dome, eyeL, pupilL, eyeR, pupilR);
+  ghostGroup.userData = { bodyMat: ghostMat, originalColor: colorHex };
+  return ghostGroup;
 }
 
-// Spawners & Free Cells
-function getSafeFreeCell(minDistFromPlayer = 4) {
-  let cell;
-  let tries = 0;
-  const head = snake[0] || { x: 5, z: ARENA_SIZE - 6 };
+// Lógica de Inicialização / Reinicialização
+function initGame() {
+  // Limpar objetos da cena
+  snakeSegments.forEach(s => scene.remove(s.mesh));
+  snakeSegments = [];
+  foods.forEach(f => scene.remove(f.mesh));
+  foods = [];
+  powerPellets.forEach(p => scene.remove(p.mesh));
+  powerPellets = [];
+  magnets.forEach(m => scene.remove(m.mesh));
+  magnets = [];
+  ghosts.forEach(g => scene.remove(g.mesh));
+  ghosts = [];
 
-  while (tries < 200) {
-    tries++;
-    cell = {
-      x: Math.floor(Math.random() * ARENA_SIZE),
-      z: Math.floor(Math.random() * ARENA_SIZE)
-    };
+  // Criar Cobrinha no centro
+  const startX = Math.floor(GRID_SIZE / 2);
+  const startZ = Math.floor(GRID_SIZE / 2);
+  snakeDir = { x: 1, z: 0 };
+  nextDir = { x: 1, z: 0 };
 
-    const dist = Math.hypot(cell.x - head.x, cell.z - head.z);
-    if (dist < minDistFromPlayer) continue;
-
-    const hitSnake = snake.some(s => s.x === cell.x && s.z === cell.z);
-    const hitFood = foods.some(f => f.x === cell.x && f.z === cell.z);
-    const hitPellet = powerPellet && powerPellet.x === cell.x && powerPellet.z === cell.z;
-    const hitMagnet = magnetItem && magnetItem.x === cell.x && magnetItem.z === cell.z;
-
-    if (!hitSnake && !hitFood && !hitPellet && !hitMagnet) {
-      return cell;
-    }
+  for (let i = 0; i < 4; i++) {
+    const geo = i === 0 ? new THREE.SphereGeometry(0.48, 16, 16) : new THREE.SphereGeometry(0.38, 14, 14);
+    const mesh = new THREE.Mesh(geo, i === 0 ? matSnakeHead : matSnakeBody);
+    const pos = gridToWorld(startX - i, startZ);
+    mesh.position.set(pos.x, 0.4, pos.z);
+    scene.add(mesh);
+    snakeSegments.push({ x: startX - i, z: startZ, mesh });
   }
-  return { x: 2, z: 2 };
+
+  // Criar Fantasmas afastados da cobrinha (nos 4 cantos)
+  const ghostColors = [0xff3344, 0xff77cc, 0x00f3ff, 0xffa500];
+  const corners = [
+    { x: 3, z: 3 },
+    { x: GRID_SIZE - 4, z: 3 },
+    { x: 3, z: GRID_SIZE - 4 },
+    { x: GRID_SIZE - 4, z: GRID_SIZE - 4 }
+  ];
+
+  for (let i = 0; i < Math.min(2 + level, 4); i++) {
+    const ghostMesh = createGhostMesh(ghostColors[i]);
+    const pos = gridToWorld(corners[i].x, corners[i].z);
+    ghostMesh.position.set(pos.x, 0, pos.z);
+    scene.add(ghostMesh);
+    ghosts.push({
+      x: corners[i].x,
+      z: corners[i].z,
+      homeX: corners[i].x,
+      homeZ: corners[i].z,
+      mesh: ghostMesh,
+      stepCooldown: 0
+    });
+  }
+
+  // Gerar Comidas
+  for (let i = 0; i < 4; i++) spawnFood();
+  spawnPowerPellet();
+  spawnMagnet();
+
+  updateHUD();
 }
 
 function spawnFood() {
-  if (foods.length >= 10) return;
-  const p = getSafeFreeCell(2);
-  foods.push(createFoodMesh(p.x, p.z));
+  let pos;
+  do {
+    pos = { x: Math.floor(Math.random() * GRID_SIZE), z: Math.floor(Math.random() * GRID_SIZE) };
+  } while (snakeSegments.some(s => s.x === pos.x && s.z === pos.z));
+
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), matFood);
+  const wPos = gridToWorld(pos.x, pos.z);
+  mesh.position.set(wPos.x, 0.35, wPos.z);
+  scene.add(mesh);
+  foods.push({ ...pos, mesh });
 }
 
 function spawnPowerPellet() {
-  if (powerPellet) return;
-  const p = getSafeFreeCell(6);
-  powerPellet = createPowerPelletMesh(p.x, p.z);
+  if (powerPellets.length > 0) return;
+  const pos = { x: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2, z: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2 };
+  const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42), matPower);
+  const wPos = gridToWorld(pos.x, pos.z);
+  mesh.position.set(wPos.x, 0.45, wPos.z);
+  scene.add(mesh);
+  powerPellets.push({ ...pos, mesh });
 }
 
 function spawnMagnet() {
-  if (magnetItem || magnetMode) return;
-  const p = getSafeFreeCell(6);
-  magnetItem = createMagnetMesh(p.x, p.z);
+  if (magnets.length > 0) return;
+  const pos = { x: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2, z: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2 };
+  const mesh = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.12, 8, 16, Math.PI), matMagnet);
+  mesh.rotation.x = -Math.PI / 2;
+  const wPos = gridToWorld(pos.x, pos.z);
+  mesh.position.set(wPos.x, 0.35, wPos.z);
+  scene.add(mesh);
+  magnets.push({ ...pos, mesh });
 }
 
-function initGameState() {
-  lives = 6;
-  score = 0;
-  level = 1;
-  targetScore = 20;
-  moveInterval = 135;
-  resetRound();
-  updateUI();
-}
+// Loop Principal de Atualização de Grid
+function gameTick() {
+  snakeDir = { ...nextDir };
+  const head = snakeSegments[0];
 
-function resetRound() {
-  snakeMeshes.forEach(m => scene.remove(m));
-  snakeMeshes = [];
+  // Atravessar Paredes (Wrap-Around suave)
+  let nextX = (head.x + snakeDir.x + GRID_SIZE) % GRID_SIZE;
+  let nextZ = (head.z + snakeDir.z + GRID_SIZE) % GRID_SIZE;
 
-  snake = [
-    { x: 5, z: ARENA_SIZE - 6 },
-    { x: 4, z: ARENA_SIZE - 6 },
-    { x: 3, z: ARENA_SIZE - 6 }
-  ];
-  dirX = 1; dirZ = 0;
-  nextDirX = 1; nextDirZ = 0;
-
-  snakeMeshes.push(createSnakeHeadMesh());
-  snakeMeshes.push(createSnakeSegmentMesh(1));
-  snakeMeshes.push(createSnakeSegmentMesh(2));
-
-  pacmanMode = false;
-  pacmanTimer = 0;
-  magnetMode = false;
-  magnetTimer = 0;
-
-  foods.forEach(f => scene.remove(f.mesh));
-  foods = [];
-  if (powerPellet) { scene.remove(powerPellet.group); powerPellet = null; }
-  if (magnetItem) { scene.remove(magnetItem.group); magnetItem = null; }
-
-  for (let i = 0; i < 7; i++) {
-    spawnFood();
-  }
-  spawnPowerPellet();
-
-  setupGhostsForLevel();
-  syncEntitiesWorldPositions();
-}
-
-function setupGhostsForLevel() {
-  ghosts.forEach(g => scene.remove(g.view.group));
-  ghosts = [];
-
-  const count = Math.min(2 + Math.floor((level - 1) * 0.8), 4);
-  for (let i = 0; i < count; i++) {
-    const data = GHOST_DATA[i];
-    const view = createGhostMesh(data.color);
-    ghosts.push({
-      id: i,
-      name: data.name,
-      x: data.startX,
-      z: data.startZ,
-      dirX: 0,
-      dirZ: 1,
-      respawnX: data.startX,
-      respawnZ: data.startZ,
-      view: view,
-      stepCount: 0
-    });
-  }
-}
-
-function syncEntitiesWorldPositions() {
-  snake.forEach((part, idx) => {
-    const w = gridToWorld(part.x, part.z);
-    if (snakeMeshes[idx]) {
-      snakeMeshes[idx].position.x = w.x;
-      snakeMeshes[idx].position.z = w.z;
-    }
-  });
-
-  ghosts.forEach(g => {
-    const w = gridToWorld(g.x, g.z);
-    g.view.group.position.x = w.x;
-    g.view.group.position.z = w.z;
-  });
-}
-
-// IA dos Fantasmas
-function updateGhostsAI() {
-  const head = snake[0];
-
-  ghosts.forEach((ghost) => {
-    ghost.stepCount++;
-    const stepSpeed = pacmanMode ? 3 : (ghost.stepCount % 2 === 0 ? 1 : 2);
-    if (ghost.stepCount % stepSpeed !== 0) return;
-
-    let targetX = head.x;
-    let targetZ = head.z;
-
-    if (pacmanMode) {
-      targetX = head.x > ARENA_SIZE / 2 ? 2 : ARENA_SIZE - 3;
-      targetZ = head.z > ARENA_SIZE / 2 ? 2 : ARENA_SIZE - 3;
-    } else {
-      if (ghost.name === 'Pinky') {
-        targetX = (head.x + dirX * 2 + ARENA_SIZE) % ARENA_SIZE;
-        targetZ = (head.z + dirZ * 2 + ARENA_SIZE) % ARENA_SIZE;
-      } else if (ghost.name === 'Inky' && Math.random() < 0.35) {
-        targetX = Math.floor(Math.random() * ARENA_SIZE);
-        targetZ = Math.floor(Math.random() * ARENA_SIZE);
-      }
-    }
-
-    const dirs = [
-      { x: 1, z: 0 },
-      { x: -1, z: 0 },
-      { x: 0, z: 1 },
-      { x: 0, z: -1 }
-    ].filter(d => !(d.x === -ghost.dirX && d.z === -ghost.dirZ));
-
-    let bestDir = dirs[0];
-    let bestDist = Infinity;
-
-    for (let d of dirs) {
-      const nx = (ghost.x + d.x + ARENA_SIZE) % ARENA_SIZE;
-      const nz = (ghost.z + d.z + ARENA_SIZE) % ARENA_SIZE;
-
-      const dx = Math.min(Math.abs(nx - targetX), ARENA_SIZE - Math.abs(nx - targetX));
-      const dz = Math.min(Math.abs(nz - targetZ), ARENA_SIZE - Math.abs(nz - targetZ));
-      const dist = Math.hypot(dx, dz);
-
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestDir = d;
-      }
-    }
-
-    if (bestDir) {
-      ghost.dirX = bestDir.x;
-      ghost.dirZ = bestDir.z;
-      ghost.x = (ghost.x + ghost.dirX + ARENA_SIZE) % ARENA_SIZE;
-      ghost.z = (ghost.z + ghost.dirZ + ARENA_SIZE) % ARENA_SIZE;
-
-      const angle = Math.atan2(ghost.dirX, ghost.dirZ);
-      ghost.view.group.rotation.y = angle;
-    }
-  });
-}
-
-function processMagnetPull() {
-  if (!magnetMode || foods.length === 0) return;
-  const head = snake[0];
-
-  foods.forEach(f => {
-    if (Math.random() < 0.65) {
-      if (f.x < head.x) f.x++;
-      else if (f.x > head.x) f.x--;
-
-      if (f.z < head.z) f.z++;
-      else if (f.z > head.z) f.z--;
-
-      if (Math.random() < 0.35) {
-        createSpark(f.mesh.position.x, 0.5, f.mesh.position.z, 0x06b6d4);
-      }
-    }
-  });
-}
-
-function gameStep() {
-  if (!isRunning || isClearing) return;
-
-  dirX = nextDirX;
-  dirZ = nextDirZ;
-
-  const head = {
-    x: (snake[0].x + dirX + ARENA_SIZE) % ARENA_SIZE,
-    z: (snake[0].z + dirZ + ARENA_SIZE) % ARENA_SIZE
-  };
-
-  for (let i = 0; i < snake.length; i++) {
-    if (head.x === snake[i].x && head.z === snake[i].z) {
-      handleDeath();
+  // Colisão com o próprio corpo
+  for (let i = 1; i < snakeSegments.length; i++) {
+    if (snakeSegments[i].x === nextX && snakeSegments[i].z === nextZ) {
+      takeDamage();
       return;
     }
   }
 
-  snake.unshift(head);
-  processMagnetPull();
-
-  let ate = false;
-  for (let i = foods.length - 1; i >= 0; i--) {
-    if (head.x === foods[i].x && head.z === foods[i].z) {
-      scene.remove(foods[i].mesh);
-      foods.splice(i, 1);
-      score += 1;
-      ate = true;
-      Sound.eatDot();
-      spawnFood();
-      break;
-    }
-  }
-
-  if (ate) {
-    const segMesh = createSnakeSegmentMesh(snake.length);
-    snakeMeshes.push(segMesh);
-  } else {
-    snake.pop();
-  }
-
-  // Coleta Super Pílula (Ativa Modo Caçador Evidente)
-  if (powerPellet && head.x === powerPellet.x && head.z === powerPellet.z) {
-    scene.remove(powerPellet.group);
-    powerPellet = null;
-    pacmanMode = true;
-    pacmanTimer = 10;
-    score += 5;
-    Sound.eatPellet();
-    createBurst3D(gridToWorld(head.x, head.z), 0xfacc15, 30);
-  }
-
-  if (magnetItem && head.x === magnetItem.x && head.z === magnetItem.z) {
-    scene.remove(magnetItem.group);
-    magnetItem = null;
-    magnetMode = true;
-    magnetTimer = 8;
-    score += 5;
-    Sound.magnet();
-    createBurst3D(gridToWorld(head.x, head.z), 0x06b6d4, 25);
-  }
-
-  updateGhostsAI();
-
-  // Colisão com Fantasmas
-  for (let g of ghosts) {
-    if (head.x === g.x && head.z === g.z) {
-      if (pacmanMode) {
+  // Interação com Fantasmas
+  for (let ghost of ghosts) {
+    if (ghost.x === nextX && ghost.z === nextZ) {
+      if (hunterTime > 0) {
+        // Devora o fantasma
+        AudioEngine.eatGhost();
         score += 50;
-        Sound.eatGhost();
-        createBurst3D(gridToWorld(g.x, g.z), 0x06b6d4, 35);
-        g.x = g.respawnX;
-        g.z = g.respawnZ;
+        ghost.x = ghost.homeX;
+        ghost.z = ghost.homeZ;
+        const wPos = gridToWorld(ghost.x, ghost.z);
+        ghost.mesh.position.set(wPos.x, 0, wPos.z);
       } else {
-        handleDeath();
+        takeDamage();
         return;
       }
     }
   }
 
-  if (!powerPellet && Math.random() < 0.02) spawnPowerPellet();
-  if (!magnetItem && !magnetMode && Math.random() < 0.02) spawnMagnet();
+  // Mover Cobrinha
+  const newHead = { x: nextX, z: nextZ, mesh: null };
+  let ateFood = false;
 
-  if (score >= targetScore) {
-    triggerLevelComplete();
-    return;
+  // Checar Comida
+  for (let i = foods.length - 1; i >= 0; i--) {
+    if (foods[i].x === nextX && foods[i].z === nextZ) {
+      scene.remove(foods[i].mesh);
+      foods.splice(i, 1);
+      score++;
+      ateFood = true;
+      AudioEngine.eat();
+      spawnFood();
+      checkLevelProgress();
+      break;
+    }
   }
 
-  updateUI();
+  // Checar Super Pílula ⚡
+  for (let i = powerPellets.length - 1; i >= 0; i--) {
+    if (powerPellets[i].x === nextX && powerPellets[i].z === nextZ) {
+      scene.remove(powerPellets[i].mesh);
+      powerPellets.splice(i, 1);
+      hunterTime = 10;
+      score += 5;
+      AudioEngine.power();
+      setTimeout(spawnPowerPellet, 18000);
+      break;
+    }
+  }
+
+  // Checar Ímã 🧲
+  for (let i = magnets.length - 1; i >= 0; i--) {
+    if (magnets[i].x === nextX && magnets[i].z === nextZ) {
+      scene.remove(magnets[i].mesh);
+      magnets.splice(i, 1);
+      magnetTime = 8;
+      AudioEngine.power();
+      setTimeout(spawnMagnet, 22000);
+      break;
+    }
+  }
+
+  // Atualizar Cauda e Cabeça
+  if (!ateFood) {
+    const tail = snakeSegments.pop();
+    scene.remove(tail.mesh);
+  }
+
+  const geo = new THREE.SphereGeometry(0.48, 16, 16);
+  newHead.mesh = new THREE.Mesh(geo, matSnakeHead);
+  const wPos = gridToWorld(nextX, nextZ);
+  newHead.mesh.position.set(wPos.x, 0.4, wPos.z);
+  scene.add(newHead);
+
+  if (snakeSegments.length > 0) {
+    snakeSegments[0].mesh.material = matSnakeBody;
+    snakeSegments[0].mesh.scale.set(0.85, 0.85, 0.85);
+  }
+
+  snakeSegments.unshift(newHead);
+
+  // Mover Fantasminhas
+  updateGhosts();
+  updateHUD();
 }
 
-setInterval(() => {
-  if (!isRunning || isClearing) return;
+// Inteligência Artificial dos Fantasmas
+function updateGhosts() {
+  const head = snakeSegments[0];
+  ghosts.forEach(ghost => {
+    ghost.stepCooldown++;
+    // No modo amedrontado movem-se mais devagar
+    const limit = hunterTime > 0 ? 2 : 1;
+    if (ghost.stepCooldown < limit) return;
+    ghost.stepCooldown = 0;
 
-  if (pacmanMode) {
-    pacmanTimer--;
-    if (pacmanTimer <= 0) pacmanMode = false;
-  }
+    let targetX = head.x;
+    let targetZ = head.z;
 
-  if (magnetMode) {
-    magnetTimer--;
-    if (magnetTimer <= 0) magnetMode = false;
-  }
+    // Se estiver no Modo Caçador, os fantasmas fogem
+    if (hunterTime > 0) {
+      targetX = ghost.x > head.x ? GRID_SIZE - 1 : 0;
+      targetZ = ghost.z > head.z ? GRID_SIZE - 1 : 0;
+    }
 
-  if (powerPellet && --powerPellet.lifespan <= 0) {
-    scene.remove(powerPellet.group);
-    powerPellet = null;
-  }
-  if (magnetItem && --magnetItem.lifespan <= 0) {
-    scene.remove(magnetItem.group);
-    magnetItem = null;
-  }
+    const possibleMoves = [
+      { x: (ghost.x + 1) % GRID_SIZE, z: ghost.z },
+      { x: (ghost.x - 1 + GRID_SIZE) % GRID_SIZE, z: ghost.z },
+      { x: ghost.x, z: (ghost.z + 1) % GRID_SIZE },
+      { x: ghost.x, z: (ghost.z - 1 + GRID_SIZE) % GRID_SIZE }
+    ];
 
-  updateUI();
-}, 1000);
+    possibleMoves.sort((a, b) => {
+      const distA = Math.hypot(a.x - targetX, a.z - targetZ);
+      const distB = Math.hypot(b.x - targetX, b.z - targetZ);
+      return distA - distB;
+    });
 
-function handleDeath() {
-  Sound.hurt();
+    ghost.x = possibleMoves[0].x;
+    ghost.z = possibleMoves[0].z;
+    const wPos = gridToWorld(ghost.x, ghost.z);
+    ghost.mesh.position.set(wPos.x, 0, wPos.z);
+
+    // Checar se pegou a cobrinha no passo do fantasma
+    if (ghost.x === head.x && ghost.z === head.z) {
+      if (hunterTime > 0) {
+        AudioEngine.eatGhost();
+        score += 50;
+        ghost.x = ghost.homeX;
+        ghost.z = ghost.homeZ;
+      } else {
+        takeDamage();
+      }
+    }
+  });
+}
+
+// Ação do Super Ímã puxando comidas
+function updateMagnet(delta) {
+  if (magnetTime <= 0) return;
+  const headPos = gridToWorld(snakeSegments[0].x, snakeSegments[0].z);
+
+  foods.forEach(f => {
+    const mesh = f.mesh;
+    mesh.position.x += (headPos.x - mesh.position.x) * delta * 5.5;
+    mesh.position.z += (headPos.z - mesh.position.z) * delta * 5.5;
+
+    // Se aproximou o suficiente, é consumida
+    if (Math.hypot(mesh.position.x - headPos.x, mesh.position.z - headPos.z) < 0.6) {
+      score++;
+      AudioEngine.eat();
+      scene.remove(mesh);
+      foods = foods.filter(item => item !== f);
+      spawnFood();
+      checkLevelProgress();
+    }
+  });
+}
+
+function takeDamage() {
   lives--;
-  updateUI();
-
-  if (snake[0]) {
-    createBurst3D(gridToWorld(snake[0].x, snake[0].z), 0xf43f5e, 40);
-  }
-
+  AudioEngine.hit();
   if (lives <= 0) {
     gameOver();
   } else {
-    isClearing = true;
-    setTimeout(() => {
-      resetRound();
-      isClearing = false;
-    }, 800);
-  }
-}
+    // Reposiciona a cobrinha de forma segura
+    const startX = Math.floor(GRID_SIZE / 2);
+    const startZ = Math.floor(GRID_SIZE / 2);
+    snakeDir = { x: 1, z: 0 };
+    nextDir = { x: 1, z: 0 };
 
-function gameOver() {
-  isRunning = false;
-  document.getElementById("finalScore").textContent = score;
-  document.getElementById("finalLevel").textContent = level;
-  document.getElementById("gameOverOverlay").classList.remove("hidden");
-  document.getElementById("gameOverOverlay").classList.add("flex");
-}
-
-function triggerLevelComplete() {
-  isClearing = true;
-  Sound.levelUp();
-  score += 100;
-
-  document.getElementById("levelClearOverlay").classList.remove("hidden");
-  document.getElementById("levelClearOverlay").classList.add("flex");
-}
-
-function nextLevel() {
-  level++;
-  targetScore = score + 22 + (level * 6);
-  moveInterval = Math.max(80, 135 - (level * 8));
-
-  document.getElementById("levelClearOverlay").classList.add("hidden");
-  document.getElementById("levelClearOverlay").classList.remove("flex");
-
-  resetRound();
-  isClearing = false;
-}
-
-function createBurst3D(pos, hexColor, count = 20) {
-  const geo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
-  const mat = new THREE.MeshBasicMaterial({ color: hexColor });
-
-  for (let i = 0; i < count; i++) {
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(pos.x, 0.6, pos.z);
-    const speed = 0.15 + Math.random() * 0.35;
-    const angle = Math.random() * Math.PI * 2;
-    scene.add(mesh);
-    particleGroup.push({
-      mesh,
-      vx: Math.cos(angle) * speed,
-      vy: 0.15 + Math.random() * 0.3,
-      vz: Math.sin(angle) * speed,
-      life: 25 + Math.random() * 15
+    snakeSegments.forEach((s, i) => {
+      s.x = (startX - i + GRID_SIZE) % GRID_SIZE;
+      s.z = startZ;
+      const pos = gridToWorld(s.x, s.z);
+      s.mesh.position.set(pos.x, 0.4, pos.z);
     });
+    updateHUD();
   }
 }
 
-function createSpark(x, y, z, hexColor) {
-  const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-  const mat = new THREE.MeshBasicMaterial({ color: hexColor });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(x, y, z);
-  scene.add(mesh);
-  particleGroup.push({
-    mesh,
-    vx: (Math.random() - 0.5) * 0.1,
-    vy: 0.1 + Math.random() * 0.1,
-    vz: (Math.random() - 0.5) * 0.1,
-    life: 12
-  });
-}
+function checkLevelProgress() {
+  if (score >= levelGoal) {
+    level++;
+    levelGoal += 15 + level * 5;
+    score += 100;
+    stepInterval = Math.max(0.08, stepInterval - 0.012);
+    AudioEngine.levelUp();
 
-function updateParticles() {
-  for (let i = particleGroup.length - 1; i >= 0; i--) {
-    const p = particleGroup[i];
-    p.mesh.position.x += p.vx;
-    p.mesh.position.y += p.vy;
-    p.mesh.position.z += p.vz;
-    p.vy -= 0.015;
-    p.life--;
+    document.getElementById('banner-title').textContent = `FASE ${level}!`;
+    levelBanner.classList.add('show');
+    setTimeout(() => levelBanner.classList.remove('show'), 2200);
 
-    if (p.life <= 0) {
-      scene.remove(p.mesh);
-      particleGroup.splice(i, 1);
+    // Adicionar mais fantasmas em fases avançadas
+    if (ghosts.length < 4) {
+      const colors = [0xff3344, 0xff77cc, 0x00f3ff, 0xffa500];
+      const mesh = createGhostMesh(colors[ghosts.length]);
+      scene.add(mesh);
+      ghosts.push({ x: 3, z: 3, homeX: 3, homeZ: 3, mesh, stepCooldown: 0 });
     }
   }
 }
 
-// --- Loop Principal de Renderização ---
-function animate(currentTime) {
+function updateHUD() {
+  livesEl.textContent = '❤️'.repeat(Math.max(0, lives));
+  levelEl.textContent = String(level).padStart(2, '0');
+  scoreEl.textContent = score;
+  goalEl.textContent = levelGoal;
+
+  if (hunterTime > 0) {
+    hunterCard.classList.add('hunter-active');
+    hunterVal.textContent = `${Math.ceil(hunterTime)}s`;
+  } else {
+    hunterCard.classList.remove('hunter-active');
+    hunterVal.textContent = 'OFF';
+  }
+
+  if (magnetTime > 0) {
+    magnetCard.classList.add('magnet-active');
+    magnetVal.textContent = `${Math.ceil(magnetTime)}s`;
+  } else {
+    magnetCard.classList.remove('magnet-active');
+    magnetVal.textContent = 'OFF';
+  }
+
+  // Atualizar visual dos fantasmas
+  ghosts.forEach(g => {
+    if (hunterTime > 0) {
+      // Azul elétrico / piscando
+      const flash = hunterTime < 3 && Math.floor(hunterTime * 6) % 2 === 0;
+      g.mesh.userData.bodyMat.color.setHex(flash ? 0xffffff : 0x00a2ff);
+    } else {
+      g.mesh.userData.bodyMat.color.setHex(g.mesh.userData.originalColor);
+    }
+  });
+}
+
+// Animação Contínua Three.js
+let clock = new THREE.Clock();
+function animate() {
   requestAnimationFrame(animate);
 
-  if (isRunning && !isClearing && currentTime - lastStepTime > moveInterval) {
-    lastStepTime = currentTime;
-    gameStep();
+  const delta = clock.getDelta();
+  const time = clock.getElapsedTime();
+
+  if (running) {
+    stepTimer += delta;
+    if (stepTimer >= stepInterval) {
+      stepTimer = 0;
+      gameTick();
+    }
+
+    if (hunterTime > 0) {
+      hunterTime = Math.max(0, hunterTime - delta);
+    }
+    if (magnetTime > 0) {
+      magnetTime = Math.max(0, magnetTime - delta);
+      updateMagnet(delta);
+    }
   }
 
-  // Interpolação suave dos segmentos da cobrinha
-  snake.forEach((part, idx) => {
-    const mesh = snakeMeshes[idx];
-    if (mesh) {
-      const target = gridToWorld(part.x, part.z);
-      mesh.position.x += (target.x - mesh.position.x) * 0.45;
-      mesh.position.z += (target.z - mesh.position.z) * 0.45;
-
-      if (idx === 0) {
-        const targetAngle = Math.atan2(dirX, dirZ);
-        mesh.rotation.y = targetAngle;
-
-        const headSphere = mesh.children[0];
-        const aura = mesh.children[1];
-
-        if (pacmanMode) {
-          headSphere.material.color.setHex(0xfacc15);
-          headSphere.material.emissive.setHex(0xeab308);
-          headSphere.material.emissiveIntensity = 0.9;
-          if (aura) {
-            aura.material.opacity = 0.75 + Math.sin(Date.now() * 0.015) * 0.25;
-            aura.rotation.y += 0.05;
-          }
-        } else if (magnetMode) {
-          headSphere.material.color.setHex(0x38bdf8);
-          headSphere.material.emissive.setHex(0x0284c7);
-          headSphere.material.emissiveIntensity = 0.6;
-          if (aura) aura.material.opacity = 0.0;
-        } else {
-          headSphere.material.color.setHex(0x10b981);
-          headSphere.material.emissive.setHex(0x059669);
-          headSphere.material.emissiveIntensity = 0.35;
-          if (aura) aura.material.opacity = 0.0;
-        }
-      }
-    }
+  // Rotação suave dos itens flutuantes
+  foods.forEach((f, idx) => {
+    f.mesh.position.y = 0.35 + Math.sin(time * 4 + idx) * 0.08;
+  });
+  powerPellets.forEach(p => {
+    p.mesh.rotation.y += delta * 2.5;
+    p.mesh.rotation.x += delta * 1.5;
+  });
+  magnets.forEach(m => {
+    m.mesh.rotation.z += delta * 3;
   });
 
-  // Atualização dos Fantasmas (Com destaque visual evidente de vulnerabilidade)
-  ghosts.forEach((ghost) => {
-    const target = gridToWorld(ghost.x, ghost.z);
-    ghost.view.group.position.x += (target.x - ghost.view.group.position.x) * 0.35;
-    ghost.view.group.position.z += (target.z - ghost.view.group.position.z) * 0.35;
-    ghost.view.group.position.y = 0.2 + Math.sin(Date.now() * 0.006 + ghost.id) * 0.15;
-
-    if (pacmanMode) {
-      // Estado Vulnerável: Azul Elétrico / Ciano Incandescente
-      if (pacmanTimer <= 3 && Math.floor(Date.now() / 150) % 2 === 0) {
-        ghost.view.material.color.setHex(0xffffff);
-        ghost.view.material.emissive.setHex(0xf43f5e);
-        ghost.view.light.color.setHex(0xffffff);
-      } else {
-        ghost.view.material.color.setHex(0x06b6d4);
-        ghost.view.material.emissive.setHex(0x0891b2);
-        ghost.view.material.emissiveIntensity = 0.9;
-        ghost.view.light.color.setHex(0x06b6d4);
-      }
-      ghost.view.pupilMat.color.setHex(0xef4444); // Olhos assustados vermelhos
-    } else {
-      ghost.view.material.color.setHex(ghost.view.baseColor);
-      ghost.view.material.emissive.setHex(0x000000);
-      ghost.view.material.emissiveIntensity = 0.0;
-      ghost.view.light.color.setHex(ghost.view.baseColor);
-      ghost.view.pupilMat.color.setHex(0x1d4ed8);
-    }
-  });
-
-  // Animação das comidas
-  foods.forEach((f) => {
-    const target = gridToWorld(f.x, f.z);
-    f.mesh.position.x += (target.x - f.mesh.position.x) * 0.2;
-    f.mesh.position.z += (target.z - f.mesh.position.z) * 0.2;
-    f.mesh.position.y = 0.45 + Math.sin(Date.now() * 0.005 + f.phase) * 0.12;
-    f.mesh.rotation.y += 0.03;
-  });
-
-  // Animação da Super Pílula com anéis girando
-  if (powerPellet) {
-    powerPellet.group.rotation.y += 0.05;
-    if (powerPellet.ring) {
-      powerPellet.ring.rotation.z += 0.06;
-      powerPellet.ring.rotation.y += 0.03;
-    }
-    const pulse = 1.0 + Math.sin(Date.now() * 0.01) * 0.25;
-    powerPellet.group.scale.set(pulse, pulse, pulse);
-  }
-
-  // Animação do Ímã
-  if (magnetItem) {
-    magnetItem.group.rotation.y += 0.05;
-    magnetItem.group.position.y = 0.8 + Math.sin(Date.now() * 0.006) * 0.15;
-  }
-
-  // Rotação suave do fundo de estrelas
-  if (starfieldMesh) {
-    starfieldMesh.rotation.y += 0.0003;
-  }
-
-  // Câmera Estável: sem trepidações bruscas, visão geral suave
-  camera.position.x += ((0) - camera.position.x) * 0.02;
-  camera.position.z += ((48) - camera.position.z) * 0.02;
-  camera.lookAt(0, -1, 0);
-
-  updateParticles();
   renderer.render(scene, camera);
 }
 
-// Atualização da UI (HUD) com feedback evidente do Modo Caçador
-function updateUI() {
-  const container = document.getElementById("livesContainer");
-  let heartsHtml = '';
-  for (let i = 0; i < 6; i++) {
-    if (i < lives) {
-      heartsHtml += '<span class="inline-block transform scale-110 drop-shadow">❤️</span>';
-    } else {
-      heartsHtml += '<span class="opacity-25 grayscale">🖤</span>';
+// Inicialização dos Controles
+function setupControls() {
+  const setDir = (x, z) => {
+    if (x !== 0 && snakeDir.x === -x) return;
+    if (z !== 0 && snakeDir.z === -z) return;
+    nextDir = { x, z };
+  };
+
+  // Teclado (PC / Tablets com teclado)
+  window.addEventListener('keydown', e => {
+    if (!running) return;
+    switch (e.key) {
+      case 'ArrowUp': case 'w': case 'W': setDir(0, -1); break;
+      case 'ArrowDown': case 's': case 'S': setDir(0, 1); break;
+      case 'ArrowLeft': case 'a': case 'A': setDir(-1, 0); break;
+      case 'ArrowRight': case 'd': case 'D': setDir(1, 0); break;
     }
-  }
-  container.innerHTML = heartsHtml;
+  });
 
-  document.getElementById("scoreDisplay").textContent = score;
-  document.getElementById("targetScoreDisplay").textContent = targetScore;
-  document.getElementById("levelDisplay").textContent = level < 10 ? `0${level}` : level;
+  // Botões Virtuais Touch
+  const bindTouch = (id, x, z) => {
+    const btn = document.getElementById(id);
+    const trigger = (e) => {
+      e.preventDefault();
+      setDir(x, z);
+    };
+    btn.addEventListener('touchstart', trigger, { passive: false });
+    btn.addEventListener('mousedown', trigger);
+  };
 
-  // Destaque Evidente do Modo Caçador
-  const pacBar = document.getElementById("pacBar");
-  const pacText = document.getElementById("pacTimerText");
-  const pacCard = document.getElementById("pacmanStatusCard");
-  const hunterLabel = document.getElementById("hunterLabelText");
-  const hunterIcon = document.getElementById("hunterIcon");
+  bindTouch('btn-up', 0, -1);
+  bindTouch('btn-down', 0, 1);
+  bindTouch('btn-left', -1, 0);
+  bindTouch('btn-right', 1, 0);
 
-  if (pacmanMode) {
-    pacText.textContent = `${pacmanTimer}s`;
-    pacBar.style.width = `${(pacmanTimer / 10) * 100}%`;
-    pacCard.classList.add("hunter-glow");
-    hunterLabel.textContent = "COMA OS FANTASMAS!";
-    hunterIcon.textContent = "⚡";
-  } else {
-    pacText.textContent = "OFF";
-    pacBar.style.width = "0%";
-    pacCard.classList.remove("hunter-glow");
-    hunterLabel.textContent = "MODO CAÇADOR";
-    hunterIcon.textContent = "🟡";
-  }
+  // Gesto Swipe (Deslizar o dedo na tela)
+  let touchStartX = 0;
+  let touchStartY = 0;
 
-  // Ímã
-  const magnetBar = document.getElementById("magnetBar");
-  const magnetText = document.getElementById("magnetTimerText");
-  if (magnetMode) {
-    magnetText.textContent = `${magnetTimer}s`;
-    magnetBar.style.width = `${(magnetTimer / 8) * 100}%`;
-  } else {
-    magnetText.textContent = "OFF";
-    magnetBar.style.width = "0%";
-  }
-}
+  window.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
 
-function handleDir(nx, nz) {
-  if (nx !== 0 && dirX === -nx) return;
-  if (nz !== 0 && dirZ === -nz) return;
-  nextDirX = nx;
-  nextDirZ = nz;
-}
+  window.addEventListener('touchend', e => {
+    if (!running) return;
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    const dist = Math.hypot(diffX, diffY);
 
-window.addEventListener("keydown", (e) => {
-  Sound.init();
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
-    e.preventDefault();
-  }
-
-  switch (e.code) {
-    case "ArrowUp":
-    case "KeyW":
-      handleDir(0, -1);
-      break;
-    case "ArrowDown":
-    case "KeyS":
-      handleDir(0, 1);
-      break;
-    case "ArrowLeft":
-    case "KeyA":
-      handleDir(-1, 0);
-      break;
-    case "ArrowRight":
-    case "KeyD":
-      handleDir(1, 0);
-      break;
-  }
-});
-
-let touchX = 0;
-let touchY = 0;
-window.addEventListener("touchstart", (e) => {
-  Sound.init();
-  touchX = e.touches[0].clientX;
-  touchY = e.touches[0].clientY;
-}, { passive: true });
-
-window.addEventListener("touchend", (e) => {
-  const dx = e.changedTouches[0].clientX - touchX;
-  const dy = e.changedTouches[0].clientY - touchY;
-  if (Math.hypot(dx, dy) > 25) {
-    if (Math.abs(dx) > Math.abs(dy)) {
-      handleDir(dx > 0 ? 1 : -1, 0);
-    } else {
-      handleDir(0, dy > 0 ? 1 : -1);
+    if (dist > 25) {
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        setDir(diffX > 0 ? 1 : -1, 0);
+      } else {
+        setDir(0, diffY > 0 ? 1 : -1);
+      }
     }
-  }
-}, { passive: true });
+  }, { passive: true });
+}
 
 function startGame() {
-  Sound.init();
-  document.getElementById("startOverlay").classList.add("hidden");
-  initGameState();
-  isRunning = true;
+  AudioEngine.init();
+  document.getElementById('menu-modal').classList.add('hidden');
+  lives = 6;
+  score = 0;
+  level = 1;
+  levelGoal = 15;
+  stepInterval = 0.14;
+  initGame();
+  running = true;
 }
 
 function restartGame() {
-  document.getElementById("gameOverOverlay").classList.add("hidden");
-  document.getElementById("gameOverOverlay").classList.remove("flex");
+  document.getElementById('game-over-modal').classList.add('hidden');
   startGame();
 }
 
-window.onload = function() {
-  initThree();
-  initGameState();
-  requestAnimationFrame(animate);
-};
-</script>
+function gameOver() {
+  running = false;
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('final-level').textContent = String(level).padStart(2, '0');
+  document.getElementById('game-over-modal').classList.remove('hidden');
+}
 
+// Iniciar Aplicação
+initThree();
+setupControls();
+animate();
+</script>
 </body>
 </html>
